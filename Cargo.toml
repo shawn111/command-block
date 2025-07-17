@@ -3,10 +3,9 @@ name = "command-block"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+crate-type = ["cdylib"]
+
 [dependencies]
 ratatui = "0.26"
-crossterm = "0.27"
-tokio = { version = "1", features = ["full"] }
-futures = "0.3"
-
-
+zellij-tile = "0.42.2"
