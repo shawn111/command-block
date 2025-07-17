@@ -11,8 +11,6 @@ use ratatui::{
     Terminal,
 };
 use std::io::{self, stdout};
-use tokio::process::Command;
-use std::process::Stdio;
 
 
 
