@@ -1,5 +1,9 @@
-use ratatui::{backend::Backend, Terminal};
-use zellij_tile::prelude::*;
+use ratatui::{backend::CrosstermBackend, Terminal};
+use std::io::{self, Stdout};
+use std::collections::BTreeMap;
+use zellij_tile::prelude::{Event, register_plugin, BareKey};
+use zellij_tile::{ZellijPlugin};
+use zellij_tile::shim::report_panic;
 
 #[derive(Default)]
 struct State {
@@ -16,16 +20,16 @@ impl ZellijPlugin for State {
         let mut should_render = false;
         match event {
             Event::Key(key_event) => {
-                match key_event.key {
-                    Key::Char(c) => {
+                match key_event.bare_key {
+                    BareKey::Char(c) => {
                         self.input.push(c);
                         should_render = true;
                     }
-                    Key::Backspace => {
+                    BareKey::Backspace => {
                         self.input.pop();
                         should_render = true;
                     }
-                    Key::Enter => {
+                    BareKey::Enter => {
                         let cmd = self.input.trim().to_string();
                         self.input.clear();
                         if cmd.eq_ignore_ascii_case("/exit") || cmd.eq_ignore_ascii_case("/quit") {
@@ -46,7 +50,7 @@ impl ZellijPlugin for State {
     }
 
     fn render(&mut self, rows: usize, cols: usize) {
-        let mut terminal = Terminal::new(ZellijBackend::new(rows, cols));
+        let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout())).expect("Failed to create terminal");
         let _ = terminal.draw(|f| {
             let chunks = ratatui::layout::Layout::default()
                 .direction(ratatui::layout::Direction::Vertical)
@@ -72,4 +76,4 @@ impl ZellijPlugin for State {
 }
 
 // This is the entry point for the Zellij plugin
-zellij_plugin!(State);
+register_plugin!(State);

@@ -9,3 +9,4 @@ crate-type = ["cdylib"]
 [dependencies]
 ratatui = "0.26"
 zellij-tile = "0.42.2"
+zellij_widgets = "*"
