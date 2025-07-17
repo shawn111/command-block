@@ -11,12 +11,31 @@ use ratatui::{
     Terminal,
 };
 use std::io::{self, stdout};
+use tokio::process::Command;
+use std::process::Stdio;
 
 
+
+pub fn setup_terminal() -> io::Result<Terminal<CrosstermBackend<std::io::Stdout>>> {
+    enable_raw_mode()?;
+    let mut stdout = stdout();
+    execute!(stdout, EnterAlternateScreen)?;
+    let backend = CrosstermBackend::new(stdout);
+    Terminal::new(backend)
+}
+
+pub fn restore_terminal(mut terminal: Terminal<CrosstermBackend<std::io::Stdout>>) -> io::Result<()> {
+    disable_raw_mode()?;
+    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+    terminal.show_cursor()
+}
 
 pub struct ShellApp<F>
 where
-    F: Fn(&str) -> std::pin::Pin<Box<dyn std::future::Future<Output = String> + Send>> + 'static,
+    F: Fn(&str) -> std::pin::Pin<Box<dyn std::future::Future<Output = String> + Send>>
+        + Send
+        + Sync
+        + 'static,
 {
     input: String,
     blocks: Vec<(String, String)>,
@@ -25,7 +44,10 @@ where
 
 impl<F> ShellApp<F>
 where
-    F: Fn(&str) -> std::pin::Pin<Box<dyn std::future::Future<Output = String> + Send>> + 'static,
+    F: Fn(&str) -> std::pin::Pin<Box<dyn std::future::Future<Output = String> + Send>>
+        + Send
+        + Sync
+        + 'static,
 {
     pub fn new(runner: F) -> Self {
         Self {
@@ -36,11 +58,7 @@ where
     }
 
     pub async fn run(&mut self) -> io::Result<()> {
-        enable_raw_mode()?;
-        let mut stdout = stdout();
-        execute!(stdout, EnterAlternateScreen)?;
-        let backend = CrosstermBackend::new(stdout);
-        let mut terminal = Terminal::new(backend)?;
+        let mut terminal = setup_terminal()?;
 
         loop {
             terminal.draw(|f| {
@@ -73,6 +91,11 @@ where
                         KeyCode::Enter => {
                             let cmd = self.input.trim().to_string();
                             self.input.clear();
+
+                            if cmd.eq_ignore_ascii_case("/exit") || cmd.eq_ignore_ascii_case("/quit") {
+                                break;
+                            }
+
                             let output = (self.run_cmd)(&cmd).await;
                             self.blocks.push((cmd, output));
                         }
@@ -83,8 +106,7 @@ where
             }
         }
 
-        disable_raw_mode()?;
-        execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+        restore_terminal(terminal)?;
         Ok(())
     }
 }

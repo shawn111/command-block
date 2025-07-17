@@ -23,4 +23,3 @@ pub fn run_command(cmd: &str) -> Pin<Box<dyn Future<Output = String> + Send>> {
         }
     })
 }
-
